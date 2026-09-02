@@ -56,20 +56,16 @@
   qty.addEventListener('input', syncQty);
   syncQty();
 
-  // Carousel
+  // Carousel (autoplay only — no manual controls)
   const carousel = document.getElementById('carousel');
   const track = document.getElementById('carouselTrack');
-  const dotsEl = document.getElementById('carouselDots');
   const idxEl = document.getElementById('carouselIndex');
   const totEl = document.getElementById('carouselTotal');
-  const prevBtn = document.getElementById('carouselPrev');
-  const nextBtn = document.getElementById('carouselNext');
   const images = Array.isArray(cfg.gallery) && cfg.gallery.length
     ? cfg.gallery
     : ['img/preview.svg'];
   let idx = 0;
   let autoTimer = null;
-  let hoverPaused = false;
 
   images.forEach((src, i) => {
     const slide = document.createElement('div');
@@ -81,56 +77,26 @@
     img.draggable = false;
     slide.appendChild(img);
     track.appendChild(slide);
-
-    const dot = document.createElement('button');
-    dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
-    dot.setAttribute('aria-label', `Go to image ${i + 1}`);
-    dot.addEventListener('click', () => goTo(i, true));
-    dotsEl.appendChild(dot);
   });
 
   totEl.textContent = images.length;
 
-  const goTo = (i, fromUser) => {
+  const goTo = (i) => {
     idx = (i + images.length) % images.length;
     track.style.transform = `translateX(-${idx * 100}%)`;
-    dotsEl.querySelectorAll('.carousel-dot').forEach((d, di) => d.classList.toggle('active', di === idx));
     idxEl.textContent = idx + 1;
-    if (fromUser) restartAuto();
   };
   const next = () => goTo(idx + 1);
-  const prev = () => goTo(idx - 1);
-
-  nextBtn.addEventListener('click', () => { next(); restartAuto(); });
-  prevBtn.addEventListener('click', () => { prev(); restartAuto(); });
-
-  // keyboard arrows
-  carousel.tabIndex = 0;
-  carousel.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') { next(); restartAuto(); }
-    if (e.key === 'ArrowLeft') { prev(); restartAuto(); }
-  });
-
-  // touch swipe
-  let touchX = null;
-  carousel.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
-  carousel.addEventListener('touchend', (e) => {
-    if (touchX == null) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); restartAuto(); }
-    touchX = null;
-  });
 
   // autoplay
   const startAuto = () => {
-    const ms = parseInt(carousel.dataset.autoplay || '4000', 10);
-    if (images.length > 1) autoTimer = setInterval(() => { if (!hoverPaused) next(); }, ms);
+    const ms = parseInt(carousel.dataset.autoplay || '3500', 10);
+    if (images.length > 1) autoTimer = setInterval(next, ms);
   };
   const stopAuto = () => clearInterval(autoTimer);
-  const restartAuto = () => { stopAuto(); startAuto(); };
-  carousel.addEventListener('mouseenter', () => { hoverPaused = true; });
-  carousel.addEventListener('mouseleave', () => { hoverPaused = false; });
-  document.addEventListener('visibilitychange', () => { document.hidden ? stopAuto() : startAuto(); });
+  document.addEventListener('visibilitychange', () => {
+    document.hidden ? stopAuto() : startAuto();
+  });
   startAuto();
 
   // modals

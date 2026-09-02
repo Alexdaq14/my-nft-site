@@ -26,111 +26,71 @@
     </nav>
   </header>
 
-  <main>
+  <main class="hero-wrap">
     <section class="hero">
-      <div class="carousel" id="carousel" data-autoplay="4000">
-        <div class="carousel-track" id="carouselTrack">
-          <!-- Images injected from config.js -->
-        </div>
-        <button class="carousel-btn prev" id="carouselPrev" aria-label="Previous">‹</button>
-        <button class="carousel-btn next" id="carouselNext" aria-label="Next">›</button>
-        <div class="carousel-dots" id="carouselDots"></div>
-        <div class="carousel-counter"><span id="carouselIndex">1</span> / <span id="carouselTotal">1</span></div>
-      </div>
-      <p class="hero-status" data-bind="mint.minted-label">
-        10,000 of 10,000 — Sold Out
-      </p>
-      <h1 class="hero-title" data-bind="hero.title">Sold out — 10,000 minted</h1>
-      <p class="hero-sub" data-bind="hero.sub">
-        Every MY NFT is minted. On-chain collectibles on Ethereum, art and metadata frozen on IPFS. Trade them on the secondary market.
-      </p>
-
-      <div class="progress">
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="progress-text">
-          <span><strong id="mintedNow">0</strong> of <span data-bind="mint.totalSupply">10,000</span></span>
-          <span class="muted">pending remaining</span>
+      <div class="hero-col hero-col-left">
+        <div class="carousel" id="carousel" data-autoplay="3500">
+          <div class="carousel-track" id="carouselTrack"></div>
+          <div class="carousel-counter"><span id="carouselIndex">1</span> / <span id="carouselTotal">1</span></div>
         </div>
       </div>
 
-      <div class="hero-actions">
-        <a data-bind-href="mint.secondaryUrl" href="#" target="_blank" rel="noopener" class="btn btn-primary" id="buyBtn">Buy on OpenSea</a>
-        <a href="#secondary" class="btn btn-ghost">Secondary market</a>
-      </div>
-    </section>
+      <div class="hero-col hero-col-right">
+        <p class="hero-status" data-bind="mint.minted-label">10,000 of 10,000 — Sold Out</p>
+        <h1 class="hero-title">Sold out — 10,000 minted</h1>
+        <p class="hero-sub">Every MY NFT is minted. On-chain collectibles on Ethereum, art and metadata frozen on IPFS. Trade them on the secondary market.</p>
 
-    <section class="secondary" id="secondary">
-      <h2 class="section-title">Secondary market</h2>
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-label">Floor</span>
-          <span class="stat-value muted">pending</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Volume</span>
-          <span class="stat-value muted">pending</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Owners</span>
-          <span class="stat-value muted">pending</span>
-        </div>
-      </div>
-      <p class="muted small">
-        <a data-bind-href="links.opensea" href="#" target="_blank" rel="noopener">View collection on OpenSea</a>
-        ·
-        <a data-bind-href="contract.explorerUrl" href="#" target="_blank" rel="noopener">View contract on <span data-bind="chain.explorer">etherscan.io</span></a>
-      </p>
-    </section>
-
-    <section class="mint-card-wrap">
-      <div class="mint-card">
-        <div class="row">
-          <div class="row-label">Quantity</div>
-          <div class="row-value">1 max <strong>10</strong> per wallet</div>
-        </div>
-
-        <div class="row">
-          <div class="row-label">Unit price</div>
-          <div class="row-value muted">pending</div>
-        </div>
-
-        <div class="row quantity-row">
-          <div class="row-label">Quantity</div>
-          <div class="qty-controls">
-            <input type="range" id="qty" min="1" max="10" value="1" />
-            <span class="qty-value"><strong id="qtyLabel">1</strong></span>
+        <div class="progress">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-text">
+            <span><strong id="mintedNow">0</strong> of <span data-bind="mint.totalSupply">10,000</span></span>
+            <span class="muted">pending remaining</span>
           </div>
         </div>
 
-        <div class="row">
-          <div class="row-label">Wallet allowance</div>
-          <div class="row-value muted">pending</div>
+        <div class="mint-card">
+          <div class="row">
+            <div class="row-label">Quantity</div>
+            <div class="row-value">1 max <strong>10</strong> per wallet</div>
+          </div>
+          <div class="row">
+            <div class="row-label">Unit price</div>
+            <div class="row-value muted">pending</div>
+          </div>
+          <div class="row quantity-row">
+            <div class="row-label">Quantity</div>
+            <div class="qty-controls">
+              <input type="range" id="qty" min="1" max="10" value="1" />
+              <span class="qty-value"><strong id="qtyLabel">1</strong></span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-label">Wallet allowance</div>
+            <div class="row-value muted">pending</div>
+          </div>
+          <div class="row total-row">
+            <div class="row-label">Total</div>
+            <div class="row-value"><strong id="totalEth">pending</strong></div>
+          </div>
+
+          <button class="btn btn-primary btn-block" id="mintBtn">
+            MINT
+            <a data-bind-href="mint.secondaryUrl" href="#" target="_blank" rel="noopener" class="btn-buy-inline">Buy on OpenSea</a>
+          </button>
+
+          <p class="soldout-note">All <span data-bind="mint.totalSupply">10,000</span> are minted. The only way to get one now is the secondary market below.</p>
         </div>
 
-        <div class="row total-row">
-          <div class="row-label">Total</div>
-          <div class="row-value"><strong id="totalEth">pending</strong></div>
+        <div class="hero-actions">
+          <a data-bind-href="mint.secondaryUrl" href="#" target="_blank" rel="noopener" class="btn btn-primary" id="buyBtn">Buy on OpenSea</a>
+          <a data-bind-href="contract.explorerUrl" href="#" target="_blank" rel="noopener" class="btn btn-ghost">View contract</a>
         </div>
-
-        <button class="btn btn-primary btn-block" id="mintBtn">
-          MINT
-          <a data-bind-href="mint.secondaryUrl" href="#" target="_blank" rel="noopener" class="btn-buy-inline">Buy on OpenSea</a>
-        </button>
-
-        <p class="soldout-note">
-          All <span data-bind="mint.totalSupply">10,000</span> are minted. The only way to get one now is the secondary market below.
-        </p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>
-      contract:
-      <a data-bind-href="contract.explorerUrl" href="#" target="_blank" rel="noopener">
-        <span data-bind="contract.shortAddress">0x0000…0000</span>
-      </a>
-    </p>
+    <p>contract: <a data-bind-href="contract.explorerUrl" href="#" target="_blank" rel="noopener"><span data-bind="contract.shortAddress">0x0000…0000</span></a></p>
     <p class="muted small">
       <a data-bind-href="links.x" href="#" target="_blank" rel="noopener"><span data-bind="links.x.handle">x.com</span></a>
       ·
@@ -150,22 +110,11 @@
       <button class="modal-close" data-close aria-label="Close">×</button>
       <h3 id="walletTitle">Connect a wallet</h3>
       <p class="muted">Choose how to connect to <strong>this site</strong>.</p>
-      <p class="muted small">
-        Connection lives in this tab only, nothing is stored on your device. You will only ever be asked to sign.
-      </p>
+      <p class="muted small">Connection lives in this tab only, nothing is stored on your device. You will only ever be asked to sign.</p>
       <div class="wallet-options">
-        <button class="wallet-btn" data-wallet="MetaMask">
-          <span class="w-dot" style="background:#f6851b"></span>
-          MetaMask
-        </button>
-        <button class="wallet-btn" data-wallet="WalletConnect">
-          <span class="w-dot" style="background:#3b99fc"></span>
-          WalletConnect
-        </button>
-        <button class="wallet-btn" data-wallet="Coinbase">
-          <span class="w-dot" style="background:#1652f0"></span>
-          Coinbase Wallet
-        </button>
+        <button class="wallet-btn" data-wallet="MetaMask"><span class="w-dot" style="background:#f6851b"></span>MetaMask</button>
+        <button class="wallet-btn" data-wallet="WalletConnect"><span class="w-dot" style="background:#3b99fc"></span>WalletConnect</button>
+        <button class="wallet-btn" data-wallet="Coinbase"><span class="w-dot" style="background:#1652f0"></span>Coinbase Wallet</button>
       </div>
     </div>
   </div>
@@ -180,9 +129,7 @@
       <div class="row"><div class="row-label">Unit price</div><div class="row-value muted">pending</div></div>
       <div class="row total-row"><div class="row-label">Total</div><div class="row-value"><strong id="reviewTotal">pending</strong></div></div>
       <button class="btn btn-primary btn-block" id="confirmBtn">Confirm and mint</button>
-      <p class="muted small">
-        Your wallet will ask you to approve the transaction. The exact total above is sent to the contract.
-      </p>
+      <p class="muted small">Your wallet will ask you to approve the transaction. The exact total above is sent to the contract.</p>
     </div>
   </div>
 
