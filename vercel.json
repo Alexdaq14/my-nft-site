@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/", "has": [{ "type": "host", "value": "www.artificialinu.store" }], "destination": "https://artificialinu.store/", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*)",

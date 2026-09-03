@@ -1,9 +1,12 @@
 window.SITE_CONFIG = {
   brand: {
-    name: "TIMEZEL NFT",
-    tagline: "10,000 on Ethereum",
+    name: "ArtificialInu",
+    tagline: "10,000 unique on-chain collectibles",
     logo: "img/logo.svg",
+    description: "ArtificialInu — 10,000 unique on-chain collectibles. Mint live on Sepolia. Trade on OpenSea.",
+    twitter: "@ArtificialInuNFT",
   },
+  domain: "artificialinu.store",
   links: {
     opensea: "https://opensea.io/",
     x: "https://x.com/",
@@ -30,7 +33,6 @@ window.SITE_CONFIG = {
     maxPerWallet: 10,
     secondaryUrl: "https://opensea.io/",
   },
-  // Несколько RPC на случай если один не отвечает
   rpcUrls: [
     "https://ethereum-sepolia-rpc.publicnode.com",
     "https://1rpc.io/sepolia",
