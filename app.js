@@ -143,6 +143,7 @@
     const soldOut = maxSupply > 0 && minted >= maxSupply;
     const beforeStart = startMs > 0 && now < startMs;
     const afterEnd = endMs > 0 && now > endMs;
+    const inWindow = (!startMs || now >= startMs) && (!endMs || now <= endMs);
 
     if (soldOut) {
       heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} — SOLD OUT`;
@@ -162,42 +163,45 @@
       stopCountdown();
       return;
     }
-    // Countdown до старта — ВСЕГДА когда есть startTime (даже без кошелька)
     if (beforeStart) {
       heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted`;
       heroTitle.textContent = 'Mint starts in';
       startCountdown(startMs, heroTitle, '');
-      // кнопка
       mintBtn.querySelector('.mint-label').textContent = 'MINT STARTS IN';
       mintBtn.classList.add('is-disabled');
       mintBtn.disabled = true;
       return;
     }
-    // В окне (start ≤ now ≤ end), но saleOpen=false — минт недоступен
-    if (!saleOpen) {
-      heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted — SALE PAUSED`;
-      heroTitle.textContent = 'Sale is paused';
-      mintBtn.querySelector('.mint-label').textContent = 'SALE PAUSED';
-      mintBtn.classList.add('is-disabled');
-      mintBtn.disabled = true;
-      if (endMs > 0) startCountdown(endMs, heroTitle, 'Ends in');
-      else stopCountdown();
-      return;
-    }
-    // Live
+    // In window — show MINT IS LIVE regardless of saleOpen
     heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted — MINT IS LIVE`;
     heroTitle.textContent = 'Mint is live';
-    if (!STATE.busy) {
-      mintBtn.querySelector('.mint-label').textContent = 'MINT';
-      mintBtn.classList.remove('is-disabled');
-      mintBtn.disabled = false;
-    }
-    if (endMs > 0) {
+    if (inWindow && endMs > 0) {
       const left = endMs - now;
-      if (left < 24 * 3600 * 1000) startCountdown(endMs, heroTitle, 'Ends in');
-      else stopCountdown();
+      if (left < 24 * 3600 * 1000) {
+        // override title only when close to ending
+        const hh = Math.floor(left / 3600000);
+        const mm = Math.floor((left % 3600000) / 60000);
+        const ss = Math.floor((left % 60000) / 1000);
+        const cd = `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+        heroTitle.textContent = `Ends in ${cd}`;
+        startCountdown(endMs, heroTitle, 'Ends in');
+      } else {
+        stopCountdown();
+      }
     } else {
       stopCountdown();
+    }
+    // Кнопка: доступна только если ещё и saleOpen === true
+    if (!STATE.busy) {
+      if (saleOpen) {
+        mintBtn.querySelector('.mint-label').textContent = 'MINT';
+        mintBtn.classList.remove('is-disabled');
+        mintBtn.disabled = false;
+      } else {
+        mintBtn.querySelector('.mint-label').textContent = 'SALE PAUSED';
+        mintBtn.classList.add('is-disabled');
+        mintBtn.disabled = true;
+      }
     }
   }
   let progressTarget = 0;
