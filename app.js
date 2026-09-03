@@ -93,13 +93,17 @@
     } catch { cmBalanceVal.textContent = '— ETH'; }
   };
 
-  const openMenu = (e) => { if (e) e.stopPropagation(); connectMenu.classList.toggle('open'); };
+  const openMenu = (e) => { if (e) e.stopPropagation(); if (!STATE.account) return; connectMenu.classList.toggle('open'); };
   const closeMenu = () => connectMenu.classList.remove('open');
   document.addEventListener('click', (e) => {
-    if (!connectMenu.contains(e.target) && e.target !== connectBtn && !connectBtn.contains(e.target)) closeMenu();
+    if (!connectMenu.contains(e.target) && e.target !== connectBtn && !connectBtn.contains(e.target) && !walletChip.contains(e.target)) closeMenu();
   });
-  connectBtn.addEventListener('click', openMenu);
-  walletChip.addEventListener('click', (e) => { e.preventDefault(); connectMenu.classList.toggle('open'); });
+  connectBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!STATE.account) connect();
+    else openMenu(e);
+  });
+  walletChip.addEventListener('click', (e) => { e.preventDefault(); openMenu(e); });
 
   const setBusy = (on, label) => {
     STATE.busy = on;
@@ -374,13 +378,6 @@
         STATE.readContract.endTime().catch(() => 0n),
         STATE.readContract.mintPrice().catch(() => 0n),
       ]);
-      if (name) {
-        const bn = $('brandName'); if (bn) bn.textContent = name;
-        document.title = `${name} — ${cfg.brand?.tagline || ''}`;
-      }
-      if (symbol) {
-        const bs = $('brandSymbol'); if (bs) bs.textContent = symbol;
-      }
       const m = Number(totalMinted);
       const ms = Number(maxSupply);
       const startMs = Number(startTime) * 1000;
