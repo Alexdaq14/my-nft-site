@@ -35,6 +35,8 @@
   const totalEth = $('totalEth');
   const mintedNow = $('mintedNow');
   const progressFill = $('progressFill');
+  const heroStatus = $('heroStatus');
+  const heroTitle = $('heroTitle');
   const mintBtn = $('mintBtn');
   const walletNote = $('walletNote');
   const reviewQty = $('reviewQty');
@@ -65,7 +67,89 @@
     if (label) mintBtn.querySelector('.mint-label').textContent = label;
   };
 
-  // ===== Progress bar =====
+  // ===== Countdown + status =====
+  let countdownTimer = null;
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function fmtCountdown(ms) {
+    if (ms <= 0) return '00:00:00';
+    const total = Math.floor(ms / 1000);
+    const d = Math.floor(total / 86400);
+    const h = Math.floor((total % 86400) / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  function startCountdown(target, el, prefix) {
+    stopCountdown();
+    const tick = () => {
+      const left = target - Date.now();
+      el.textContent = `${prefix} ${fmtCountdown(left)}`;
+      if (left <= 0) { stopCountdown(); refreshContractInfo(); }
+    };
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+  function stopCountdown() { if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
+
+  function renderStatus({ minted, maxSupply, saleOpen, startMs, endMs, isLiveWindow }) {
+    const now = Date.now();
+    const soldOut = maxSupply > 0 && minted >= maxSupply;
+    const beforeStart = startMs > 0 && now < startMs;
+    const afterEnd = endMs > 0 && now > endMs;
+
+    if (soldOut) {
+      heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} — SOLD OUT`;
+      heroTitle.textContent = 'Sold out — every NFT is minted';
+      mintBtn.querySelector('.mint-label').textContent = 'SOLD OUT';
+      mintBtn.classList.add('is-disabled');
+      mintBtn.disabled = true;
+      stopCountdown();
+      return;
+    }
+    if (afterEnd) {
+      heroStatus.textContent = 'Mint window closed';
+      heroTitle.textContent = 'Mint window has ended';
+      mintBtn.querySelector('.mint-label').textContent = 'ENDED';
+      mintBtn.classList.add('is-disabled');
+      mintBtn.disabled = true;
+      stopCountdown();
+      return;
+    }
+    if (beforeStart) {
+      heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted`;
+      heroTitle.textContent = 'Mint starts in';
+      mintBtn.querySelector('.mint-label').textContent = 'MINT STARTS IN';
+      mintBtn.classList.add('is-disabled');
+      mintBtn.disabled = true;
+      startCountdown(startMs, heroTitle, '');
+      return;
+    }
+    if (!saleOpen) {
+      heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted`;
+      heroTitle.textContent = 'Sale is paused';
+      mintBtn.querySelector('.mint-label').textContent = 'SALE PAUSED';
+      mintBtn.classList.add('is-disabled');
+      mintBtn.disabled = true;
+      stopCountdown();
+      return;
+    }
+    // Live
+    heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted — MINT IS LIVE`;
+    heroTitle.textContent = 'Mint is live';
+    if (!STATE.busy) {
+      mintBtn.querySelector('.mint-label').textContent = 'MINT';
+      mintBtn.classList.remove('is-disabled');
+      mintBtn.disabled = false;
+    }
+    if (endMs > 0) {
+      const left = endMs - now;
+      if (left < 24 * 3600 * 1000) startCountdown(endMs, heroTitle, 'Ends in');
+      else stopCountdown();
+    } else {
+      stopCountdown();
+    }
+  }
   let progressTarget = 0;
   let progressShown = 0;
   const animateProgress = () => {
@@ -87,7 +171,8 @@
     qty.style.setProperty('--p', p + '%');
   };
   const updateTotal = async () => {
-    const n = Math.max(1, Math.min(10, parseInt(qty.value, 10) || 1));
+    const cap = +qty.max;
+    const n = Math.max(1, Math.min(cap, parseInt(qty.value, 10) || 1));
     qtyLabel.textContent = n;
     syncRangeFill();
     if (!STATE.account || !STATE.readContract) {
@@ -228,12 +313,18 @@
   async function refreshContractInfo() {
     if (!STATE.readContract) return;
     try {
-      const [name, symbol, totalMinted, maxSupply, saleOpen] = await Promise.all([
+      const [
+        name, symbol, totalMinted, maxSupply, saleOpen,
+        startTime, endTime, mintPriceWei,
+      ] = await Promise.all([
         STATE.readContract.name().catch(() => null),
         STATE.readContract.symbol().catch(() => null),
         STATE.readContract.totalMinted().catch(() => 0n),
         STATE.readContract.maxSupply().catch(() => 0n),
         STATE.readContract.saleOpen().catch(() => false),
+        STATE.readContract.startTime().catch(() => 0n),
+        STATE.readContract.endTime().catch(() => 0n),
+        STATE.readContract.mintPrice().catch(() => 0n),
       ]);
       if (name) {
         const bn = $('brandName'); if (bn) bn.textContent = name;
@@ -244,25 +335,18 @@
       }
       const m = Number(totalMinted);
       const ms = Number(maxSupply);
+      const startMs = Number(startTime) * 1000;
+      const endMs = Number(endTime) * 1000;
+
       progressTarget = m;
       progressShown = 0;
       animateProgress();
       if (progressFill) progressFill.style.width = `${ms > 0 ? (m / ms) * 100 : 0}%`;
 
-      if (saleOpen === false) {
-        mintBtn.querySelector('.mint-label').textContent = 'SALE NOT OPEN';
-        mintBtn.classList.add('is-disabled');
-        mintBtn.disabled = true;
-        walletNote.textContent = 'The contract owner has not opened the sale yet.';
-      } else if (ms > 0 && m >= ms) {
-        mintBtn.querySelector('.mint-label').textContent = 'SOLD OUT';
-        mintBtn.classList.add('is-disabled');
-        mintBtn.disabled = true;
-      } else {
-        mintBtn.querySelector('.mint-label').textContent = 'MINT';
-        mintBtn.classList.remove('is-disabled');
-        mintBtn.disabled = false;
-      }
+      renderStatus({ minted: m, maxSupply: ms, saleOpen, startMs, endMs, isLiveWindow: true });
+
+      const up = $('unitPrice');
+      if (up) up.textContent = fmtEth(mintPriceWei) + ' ETH';
 
       if (STATE.account) {
         try {
@@ -272,8 +356,11 @@
           const walletRemaining = Number(STATE.info.walletRemaining);
           const freeSupplyRem = Number(STATE.info.freeSupplyRemaining);
           const collRem = Number(STATE.info.collectionRemaining);
-          qty.max = Math.max(1, Math.min(10, walletLimit, collRem || walletLimit));
-          if (parseInt(qty.value, 10) > +qty.max) qty.value = qty.max;
+          const cap = Math.max(1, Math.min(25, walletLimit, collRem || walletLimit));
+          qty.max = String(cap);
+          if (parseInt(qty.value, 10) > cap) qty.value = cap;
+          const wa = $('walletAllowance');
+          if (wa) wa.textContent = `${walletMinted} / ${walletLimit} (${walletRemaining} left)`;
           walletNote.textContent =
             `You: ${walletMinted}/${walletLimit} minted • ` +
             `Free supply left: ${freeSupplyRem} • ` +
@@ -369,6 +456,7 @@
       const provider = new ethers.JsonRpcProvider(cfg.chain.rpcUrl);
       STATE.readContract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, provider);
       refreshContractInfo();
+      setInterval(refreshContractInfo, 30000);
     } catch (e) { /* ignore */ }
   }
   updateTotal();

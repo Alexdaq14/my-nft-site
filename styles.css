@@ -157,6 +157,7 @@ a:hover { text-decoration: underline; }
   font-weight: 800;
   letter-spacing: -0.5px;
   line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 .hero-sub {
   margin: 0 0 20px;
