@@ -439,12 +439,19 @@
             const walletLimit = Number(STATE.info.walletLimit);
             const walletRemaining = Number(STATE.info.walletRemaining);
             const freeSupplyRem = Number(STATE.info.freeSupplyRemaining);
-            const cap = Math.max(1, Math.min(25, walletLimit, collRem || walletLimit));
-            qty.max = String(cap);
-            if (parseInt(qty.value, 10) > cap) qty.value = cap;
-            if (wa) wa.textContent = `${walletMinted} / ${walletLimit} (${walletRemaining} left)`;
+            // Лимит = сколько ОСТАЛОСЬ купить этому кошельку (макс 25)
+            const cap = Math.max(1, Math.min(25, walletRemaining || walletLimit, collRem || walletRemaining || walletLimit));
+          qty.max = String(cap);
+          if (parseInt(qty.value, 10) > cap) qty.value = cap;
+          if (wa) wa.textContent = `${walletMinted} / ${walletLimit} (${walletRemaining} left)`;
+          const qh = $('qtyHint');
+          if (qh) {
+            if (walletRemaining === 0) qh.innerHTML = `<span class="muted">Limit reached — you've minted all ${walletLimit}</span>`;
+            else qh.innerHTML = `1–<strong>${cap}</strong> available (you have ${walletMinted}/${walletLimit})`;
+          }
             walletNote.textContent =
               `You: ${walletMinted}/${walletLimit} minted • ` +
+              `${walletRemaining} more available • ` +
               `Free supply left: ${freeSupplyRem} • ` +
               `Sale open: ${STATE.info.isSaleOpen ? 'yes' : 'no'}`;
           }
