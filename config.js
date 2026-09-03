@@ -13,9 +13,9 @@ window.SITE_CONFIG = {
     explorer: "https://sepolia.etherscan.io/",
   },
   contract: {
-    address: "0x42E224AbEE0305b1b644780910300376881960eE",
-    shortAddress: "0x42E2…60eE",
-    explorerUrl: "https://sepolia.etherscan.io/address/0x42E224AbEE0305b1b644780910300376881960eE",
+    address: "0x46c509fE12cBd1f43EC12977f0E684ADE6cf7717",
+    shortAddress: "0x46c5…7717",
+    explorerUrl: "https://sepolia.etherscan.io/address/0x46c509fE12cBd1f43EC12977f0E684ADE6cf7717",
   },
   chain: {
     name: "Sepolia",
