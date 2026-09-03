@@ -19,11 +19,33 @@
       <img src="img/logo.svg" alt="MY NFT" class="brand-logo" />
       <span class="brand-name"><span id="brandName" data-bind="brand.name">MY NFT</span> <span id="brandSymbol" class="muted"></span></span>
     </a>
-    <nav class="site-nav">
-      <a data-bind-href="links.x" href="#" target="_blank" rel="noopener">X</a>
-      <a data-bind-href="links.opensea" href="#" target="_blank" rel="noopener">OpenSea</a>
+    <a href="#" id="walletChip" class="wallet-chip" style="display:none" title="Connected wallet">
+      <span class="w-dot" id="walletChipDot"></span>
+      <span id="walletChipText">0x…</span>
+    </a>
+    <div class="connect-wrap">
       <button class="btn btn-ghost" id="connectBtn">Connect wallet</button>
-    </nav>
+      <div class="connect-menu" id="connectMenu" aria-hidden="true">
+        <div class="cm-account">
+          <span class="cm-label">Connected</span>
+          <span class="cm-addr" id="cmAddr">0x…</span>
+        </div>
+        <div class="cm-row" id="cmBalance">
+          <span class="cm-row-label">Balance</span>
+          <span class="cm-row-value" id="cmBalanceVal">— ETH</span>
+        </div>
+        <div class="cm-row">
+          <span class="cm-row-label">Network</span>
+          <span class="cm-row-value" id="cmNet">—</span>
+        </div>
+        <div class="cm-actions">
+          <button class="cm-btn" id="cmCopy">Copy address</button>
+          <button class="cm-btn" id="cmView">View on Etherscan</button>
+          <button class="cm-btn" id="cmSwitch">Switch account</button>
+          <button class="cm-btn cm-btn-danger" id="cmDisconnect">Disconnect</button>
+        </div>
+      </div>
+    </div>
   </header>
 
   <main class="hero-wrap">

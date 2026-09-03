@@ -30,6 +30,16 @@
 
   const $ = (id) => document.getElementById(id);
   const connectBtn = $('connectBtn');
+  const connectMenu = $('connectMenu');
+  const walletChip = $('walletChip');
+  const walletChipText = $('walletChipText');
+  const cmAddr = $('cmAddr');
+  const cmBalanceVal = $('cmBalanceVal');
+  const cmNet = $('cmNet');
+  const cmCopy = $('cmCopy');
+  const cmView = $('cmView');
+  const cmSwitch = $('cmSwitch');
+  const cmDisconnect = $('cmDisconnect');
   const qty = $('qty');
   const qtyLabel = $('qtyLabel');
   const totalEth = $('totalEth');
@@ -58,6 +68,38 @@
     connectBtn.innerHTML = text;
     connectBtn.title = sub || '';
   };
+
+  const LS_KEY = 'nft:lastAccount';
+  const saveAccount = (addr) => { try { if (addr) localStorage.setItem(LS_KEY, addr); else localStorage.removeItem(LS_KEY); } catch {} };
+  const loadAccount = () => { try { return localStorage.getItem(LS_KEY) || null; } catch { return null; } };
+
+  const updateChipAndMenu = async () => {
+    if (!STATE.account) {
+      walletChip.style.display = 'none';
+      connectBtn.style.display = '';
+      connectMenu.classList.remove('open');
+      return;
+    }
+    walletChip.style.display = 'inline-flex';
+    walletChipText.textContent = short(STATE.account);
+    walletChip.href = `${cfg.chain.explorerUrl}/address/${STATE.account}`;
+    connectBtn.style.display = 'none';
+    connectMenu.classList.remove('open');
+    cmAddr.textContent = STATE.account;
+    cmNet.textContent = `${cfg.chain.name} (${STATE.chainId})`;
+    try {
+      const bal = await STATE.provider.getBalance(STATE.account);
+      cmBalanceVal.textContent = `${fmtEth(bal)} ETH`;
+    } catch { cmBalanceVal.textContent = '— ETH'; }
+  };
+
+  const openMenu = (e) => { if (e) e.stopPropagation(); connectMenu.classList.toggle('open'); };
+  const closeMenu = () => connectMenu.classList.remove('open');
+  document.addEventListener('click', (e) => {
+    if (!connectMenu.contains(e.target) && e.target !== connectBtn && !connectBtn.contains(e.target)) closeMenu();
+  });
+  connectBtn.addEventListener('click', openMenu);
+  walletChip.addEventListener('click', (e) => { e.preventDefault(); connectMenu.classList.toggle('open'); });
 
   const setBusy = (on, label) => {
     STATE.busy = on;
@@ -116,22 +158,26 @@
       stopCountdown();
       return;
     }
+    // Countdown до старта — ВСЕГДА когда есть startTime (даже без кошелька)
     if (beforeStart) {
       heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted`;
       heroTitle.textContent = 'Mint starts in';
+      startCountdown(startMs, heroTitle, '');
+      // кнопка
       mintBtn.querySelector('.mint-label').textContent = 'MINT STARTS IN';
       mintBtn.classList.add('is-disabled');
       mintBtn.disabled = true;
-      startCountdown(startMs, heroTitle, '');
       return;
     }
+    // В окне (start ≤ now ≤ end), но saleOpen=false — минт недоступен
     if (!saleOpen) {
-      heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted`;
+      heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted — SALE PAUSED`;
       heroTitle.textContent = 'Sale is paused';
       mintBtn.querySelector('.mint-label').textContent = 'SALE PAUSED';
       mintBtn.classList.add('is-disabled');
       mintBtn.disabled = true;
-      stopCountdown();
+      if (endMs > 0) startCountdown(endMs, heroTitle, 'Ends in');
+      else stopCountdown();
       return;
     }
     // Live
@@ -301,7 +347,9 @@
       STATE.contract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, signer);
       STATE.readContract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, provider);
 
-      setConnectLabel(`${short(account)} <span class="muted">${cfg.chain.name}</span>`, account);
+      saveAccount(account);
+      setConnectLabel(short(account), account);
+      await updateChipAndMenu();
       walletNote.textContent = '';
 
       await refreshContractInfo();
@@ -414,15 +462,10 @@
   }
 
   // ===== Event wiring =====
-  connectBtn.addEventListener('click', connect);
+  // (connectBtn click handled by openMenu above)
 
   document.querySelectorAll('.wallet-btn').forEach(b => {
     b.addEventListener('click', () => { closeModal($('walletModal')); connect(); });
-  });
-
-  // override demo wallet buttons in modal — they all do the same thing now
-  document.querySelectorAll('.wallet-btn').forEach(b => {
-    b.addEventListener('click', () => { closeModal($('walletModal')); }, { capture: true });
   });
 
   mintBtn.addEventListener('click', (e) => {
@@ -439,8 +482,10 @@
   if (window.ethereum) {
     window.ethereum.on?.('accountsChanged', async (accs) => {
       if (!accs || accs.length === 0) {
-        STATE.account = null; STATE.signer = null; STATE.contract = null;
+        STATE.account = null; STATE.signer = null; STATE.contract = null; STATE.provider = null;
         setConnectLabel('Connect wallet', '');
+        saveAccount(null);
+        await updateChipAndMenu();
         walletNote.textContent = '';
         return;
       }
@@ -449,9 +494,31 @@
     window.ethereum.on?.('chainChanged', () => { location.reload(); });
   }
 
-  // initial state
-  if (typeof window.ethereum !== 'undefined' && cfg.contract?.address) {
-    // pre-create read-only contract for the total
+  // dropdown actions
+  cmCopy.addEventListener('click', async () => {
+    if (!STATE.account) return;
+    try { await navigator.clipboard.writeText(STATE.account); cmCopy.textContent = 'Copied ✓'; setTimeout(() => { cmCopy.textContent = 'Copy address'; }, 1500); } catch {}
+  });
+  cmView.addEventListener('click', () => {
+    if (!STATE.account) return;
+    window.open(`${cfg.chain.explorerUrl}/address/${STATE.account}`, '_blank');
+  });
+  cmSwitch.addEventListener('click', async () => {
+    closeMenu();
+    // request permissions again — forces MetaMask to show account picker
+    try { await window.ethereum.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] }); } catch {}
+    try { await connect(); } catch {}
+  });
+  cmDisconnect.addEventListener('click', () => {
+    STATE.account = null; STATE.signer = null; STATE.contract = null; STATE.provider = null;
+    saveAccount(null);
+    setConnectLabel('Connect wallet', '');
+    updateChipAndMenu();
+    walletNote.textContent = '';
+  });
+
+  // initial state — read-only contract works without a wallet
+  if (cfg.contract?.address) {
     try {
       const provider = new ethers.JsonRpcProvider(cfg.chain.rpcUrl);
       STATE.readContract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, provider);
@@ -460,4 +527,17 @@
     } catch (e) { /* ignore */ }
   }
   updateTotal();
+
+  // auto-reconnect if previously connected
+  (async () => {
+    if (typeof window.ethereum === 'undefined' || !window.ethereum.selectedAddress) return;
+    const last = loadAccount();
+    if (!last) return;
+    try {
+      const accs = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accs && accs.length && accs.map(a => a.toLowerCase()).includes(last.toLowerCase())) {
+        await connect();
+      }
+    } catch {}
+  })();
 })();

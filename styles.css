@@ -41,12 +41,78 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: 0;
   z-index: 50;
+  gap: 16px;
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 1px; }
 .brand-logo { width: 28px; height: 28px; }
 .brand-name { font-weight: 800; }
 .site-nav { display: flex; align-items: center; gap: 18px; }
 .site-nav a { font-size: 13px; letter-spacing: 1px; }
+
+/* wallet chip (shown after connect, next to logo) */
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: #0a0a0a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  color: #fff;
+}
+.wallet-chip:hover { background: #1a1a1a; text-decoration: none; }
+.wallet-chip .w-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+/* connect button + dropdown */
+.connect-wrap { position: relative; display: inline-flex; }
+.connect-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 280px;
+  background: #0a0a0a;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: none;
+  z-index: 60;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+}
+.connect-menu.open { display: block; }
+.cm-account { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.cm-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.cm-addr { font-size: 13px; font-weight: 700; word-break: break-all; }
+.cm-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; font-size: 12.5px;
+  border-bottom: 1px solid var(--line);
+}
+.cm-row-label { color: var(--muted); }
+.cm-row-value { font-weight: 700; }
+.cm-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.cm-btn {
+  text-align: left;
+  background: #000;
+  border: 1px solid var(--line-strong);
+  color: #fff;
+  padding: 9px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.cm-btn:hover { background: #1a1a1a; }
+.cm-btn-danger { color: #ff7777; border-color: #5a2a2a; }
+.cm-btn-danger:hover { background: #2a0a0a; color: #ff9999; }
 
 /* Buttons */
 .btn {
