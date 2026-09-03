@@ -146,13 +146,46 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="walletTitle">
       <button class="modal-close" data-close aria-label="Close">×</button>
       <h3 id="walletTitle">Connect a wallet</h3>
-      <p class="muted">Choose how to connect to <strong>this site</strong>.</p>
-      <p class="muted small">Connection lives in this tab only, nothing is stored on your device. You will only ever be asked to sign.</p>
-      <div class="wallet-options">
-        <button class="wallet-btn" data-wallet="MetaMask"><span class="w-dot" style="background:#f6851b"></span>MetaMask</button>
-        <button class="wallet-btn" data-wallet="WalletConnect"><span class="w-dot" style="background:#3b99fc"></span>WalletConnect</button>
-        <button class="wallet-btn" data-wallet="Coinbase"><span class="w-dot" style="background:#1652f0"></span>Coinbase Wallet</button>
+      <p class="muted" id="walletHelp">Choose how to connect to <strong>this site</strong>.</p>
+
+      <div id="wcQrWrap" class="wc-qr" style="display:none">
+        <p class="muted small">Scan with your wallet app, or tap on mobile:</p>
+        <div class="wc-qr-img" id="wcQrImg"></div>
+        <div class="wc-mobile-buttons" id="wcMobileButtons"></div>
+        <button class="cm-btn" id="wcCancel">Cancel</button>
       </div>
+
+      <div class="wallet-options" id="walletOptions">
+        <button class="wallet-btn" data-wallet="metamask">
+          <span class="w-dot" style="background:#f6851b"></span>
+          <span class="wallet-label">MetaMask</span>
+          <span class="wallet-tag" id="mmTag"></span>
+        </button>
+        <button class="wallet-btn" data-wallet="walletconnect">
+          <span class="w-dot" style="background:#3b99fc"></span>
+          <span class="wallet-label">WalletConnect</span>
+          <span class="wallet-tag">QR / mobile</span>
+        </button>
+        <button class="wallet-btn" data-wallet="trust">
+          <span class="w-dot" style="background:#3375bb"></span>
+          <span class="wallet-label">Trust Wallet</span>
+          <span class="wallet-tag">mobile</span>
+        </button>
+        <button class="wallet-btn" data-wallet="coinbase">
+          <span class="w-dot" style="background:#1652f0"></span>
+          <span class="wallet-label">Coinbase Wallet</span>
+          <span class="wallet-tag"></span>
+        </button>
+        <button class="wallet-btn" data-wallet="injected">
+          <span class="w-dot" style="background:#888"></span>
+          <span class="wallet-label">Browser wallet</span>
+          <span class="wallet-tag">Rabby, etc.</span>
+        </button>
+      </div>
+
+      <p class="muted small">Connection lives in this tab only. You will only ever be asked to sign.</p>
+    </div>
+  </div>
     </div>
   </div>
 
@@ -182,6 +215,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.21.1/dist/index.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="abi.js"></script>
   <script src="app.js"></script>

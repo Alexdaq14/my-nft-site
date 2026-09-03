@@ -23,9 +23,10 @@
     contract: null,
     readContract: null,
     chainId: null,
-    info: null,       // last mintInfo result for current account
-    quote: null,      // last quoteMint result
+    info: null,
+    quote: null,
     busy: false,
+    walletType: null, // 'metamask' | 'walletconnect' | 'trust' | 'coinbase' | 'injected'
   };
 
   const $ = (id) => document.getElementById(id);
@@ -100,7 +101,7 @@
   });
   connectBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!STATE.account) connect();
+    if (!STATE.account) openModal('walletModal');
     else openMenu(e);
   });
   walletChip.addEventListener('click', (e) => { e.preventDefault(); openMenu(e); });
@@ -343,60 +344,204 @@
   };
 
   // ===== Connect wallet =====
-  async function connect() {
-    if (typeof window.ethereum === 'undefined') {
-      openModal('walletModal');
+  const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+  const MM_DEEPLINK = (u) => `https://metamask.app.link/dapp/${u.replace(/^https?:\/\//, '')}`;
+  const MM_SCHEME = (u) => `metamask://dapp/${u.replace(/^https?:\/\//, '')}`;
+
+  async function getEIP6963Provider() {
+    return new Promise((resolve) => {
+      let resolved = null;
+      const onAnnounce = (event) => {
+        const { info, provider } = event.detail;
+        if (info?.rdns === 'io.metamask' || info?.name?.toLowerCase().includes('metamask')) {
+          resolved = provider; window.removeEventListener('eip6963:announceProvider', onAnnounce);
+          resolve(resolved);
+        }
+      };
+      window.addEventListener('eip6963:announceProvider', onAnnounce);
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+      setTimeout(() => resolve(resolved), 200);
+    });
+  }
+
+  async function switchChain(provider) {
+    const targetHex = cfg.chain?.hexChainId;
+    if (!targetHex) return;
+    try {
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
+    } catch (sw) {
+      if (sw.code === 4902 || /Unrecognized chain/i.test(sw.message || '')) {
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: targetHex,
+            chainName: cfg.chain.name,
+            rpcUrls: [cfg.chain.rpcUrl],
+            blockExplorerUrls: [cfg.chain.explorerUrl],
+            nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+          }],
+        });
+      } else {
+        throw sw;
+      }
+    }
+  }
+
+  async function finalizeConnection(provider, walletType) {
+    const bp = new ethers.BrowserProvider(provider, 'any');
+    await bp.send('eth_requestAccounts', []);
+    const signer = await bp.getSigner();
+    const account = await signer.getAddress();
+    const net = await bp.getNetwork();
+    await switchChain(provider);
+
+    STATE.provider = bp;
+    STATE.signer = signer;
+    STATE.account = account;
+    STATE.chainId = Number(net.chainId);
+    STATE.contract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, signer);
+    STATE.readContract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, bp);
+    STATE.walletType = walletType;
+
+    saveAccount(account);
+    setConnectLabel(short(account), account);
+    await updateChipAndMenu();
+    walletNote.textContent = '';
+    await refreshContractInfo();
+  }
+
+  async function connectMetaMask() {
+    // 1) try injected
+    let provider = null;
+    if (window.ethereum?.isMetaMask) provider = window.ethereum;
+    else provider = await getEIP6963Provider();
+    if (!provider) {
+      // mobile / no installed — deep link to MetaMask app which opens this URL in its dApp browser
+      const url = encodeURIComponent(window.location.href);
+      if (isMobile) {
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+        return;
+      }
+      alert('MetaMask not detected. Install it from metamask.io or use WalletConnect.');
+      window.open('https://metamask.io/download/', '_blank');
       return;
     }
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum, 'any');
-      await provider.send('eth_requestAccounts', []);
-      const signer = await provider.getSigner();
-      const account = await signer.getAddress();
-      const net = await provider.getNetwork();
+    await finalizeConnection(provider, 'metamask');
+  }
 
-      // switch to required chain
-      const targetHex = cfg.chain?.hexChainId;
-      if (targetHex && '0x' + BigInt(net.chainId).toString(16).toLowerCase() !== targetHex.toLowerCase()) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: targetHex }],
-          });
-        } catch (sw) {
-          if (sw.code === 4902 || /Unrecognized chain/i.test(sw.message || '')) {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: targetHex,
-                chainName: cfg.chain.name,
-                rpcUrls: [cfg.chain.rpcUrl],
-                blockExplorerUrls: [cfg.chain.explorerUrl],
-                nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-              }],
-            });
-          } else {
-            throw sw;
-          }
-        }
-      }
+  async function connectInjected() {
+    if (!window.ethereum) { alert('No browser wallet detected.'); return; }
+    await finalizeConnection(window.ethereum, 'injected');
+  }
 
-      STATE.provider = provider;
-      STATE.signer = signer;
-      STATE.account = account;
-      STATE.chainId = Number(net.chainId);
-      STATE.contract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, signer);
-      STATE.readContract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, provider);
+  async function connectCoinbase() {
+    // Coinbase Wallet extension has isCoinbaseWallet; on mobile use WalletConnect
+    let provider = null;
+    if (window.ethereum?.isCoinbaseWallet) provider = window.ethereum;
+    if (provider) { await finalizeConnection(provider, 'coinbase'); return; }
+    return connectWalletConnect({ cb: true });
+  }
 
-      saveAccount(account);
-      setConnectLabel(short(account), account);
-      await updateChipAndMenu();
-      walletNote.textContent = '';
-
-      await refreshContractInfo();
-    } catch (e) {
-      console.warn('connect', e);
+  async function connectTrust() {
+    if (window.ethereum?.isTrust) {
+      await finalizeConnection(window.ethereum, 'trust');
+    } else {
+      return connectWalletConnect({ target: 'trust' });
     }
+  }
+
+  let wcProvider = null;
+  async function connectWalletConnect(opts = {}) {
+    if (!window.WalletConnectEthereumProvider) {
+      alert('WalletConnect not loaded. Check your connection.');
+      return;
+    }
+    const wcOpts = {
+      projectId: '8a1f6f4d0d5f4a4d8e1a7c5b3e2f1a0b', // public demo project id, get your own at cloud.walletconnect.com
+      chains: [cfg.chain?.chainId || 1],
+      rpcMap: { [cfg.chain?.chainId || 1]: cfg.chain?.rpcUrl || '' },
+      metadata: {
+        name: cfg.brand?.name || 'NFT',
+        description: cfg.brand?.description || '',
+        url: window.location.origin,
+        icons: [`${window.location.origin}/img/logo.svg`],
+      },
+      showQrModal: true,
+      qrModalOptions: { themeMode: 'dark' },
+    };
+    try {
+      wcProvider = await window.WalletConnectEthereumProvider.init(wcOpts);
+      wcProvider.on('display_uri', (uri) => showWCQR(uri));
+      await wcProvider.connect();
+      await wcProvider.enable();
+      await finalizeConnection(wcProvider, 'walletconnect');
+    } catch (e) {
+      console.warn('walletconnect', e);
+      walletNote.textContent = 'WalletConnect failed: ' + (e?.message || e);
+    }
+  }
+
+  function showWCQR(uri) {
+    const wrap = document.getElementById('wcQrWrap');
+    const img = document.getElementById('wcQrImg');
+    const mobile = document.getElementById('wcMobileButtons');
+    const opts = document.getElementById('walletOptions');
+    if (!wrap) return;
+    opts.style.display = 'none';
+    wrap.style.display = 'block';
+    img.innerHTML = '';
+    if (uri) {
+      // generate QR
+      const qr = qrcode(0, 'M', uri);
+      const canvas = document.createElement('canvas');
+      canvas.width = 200; canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      const mod = qr.getModuleCount();
+      const size = 200 / mod;
+      for (let r = 0; r < mod; r++) for (let c = 0; c < mod; c++) {
+        ctx.fillStyle = qr.isDark(r, c) ? '#000' : '#fff';
+        ctx.fillRect(c * size, r * size, size, size);
+      }
+      img.appendChild(canvas);
+    }
+    // mobile deep links
+    const origin = window.location.origin + window.location.pathname;
+    const encUri = encodeURIComponent(uri || '');
+    mobile.innerHTML = `
+      <a href="https://metamask.app.link/wc?uri=${encUri}">Open in MetaMask</a>
+      <a href="https://link.trustwallet.com/wc?uri=${encUri}">Open in Trust Wallet</a>
+      <a href="rainbow://wc?uri=${encUri}">Open in Rainbow</a>
+    `;
+  }
+
+  // minimal QR encoder (no external lib) — supports WalletConnect URIs
+  // Based on public-domain QR-Code-generator by nayuki (MIT)
+  function qrcode() { return _qr.apply(null, arguments); }
+  // Inject a tiny QR encoder
+  // (loaded async, will be set below)
+  let _qr = function () { throw new Error('QR not loaded'); };
+  // load it
+  const qrScript = document.createElement('script');
+  qrScript.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+  qrScript.onload = () => { _qr = window.qrcode || function () { throw new Error('QR missing'); }; };
+  document.head.appendChild(qrScript);
+
+  document.getElementById('wcCancel')?.addEventListener('click', () => {
+    const wrap = document.getElementById('wcQrWrap');
+    const opts = document.getElementById('walletOptions');
+    if (wrap) wrap.style.display = 'none';
+    if (opts) opts.style.display = '';
+    if (wcProvider) { try { wcProvider.disconnect(); } catch {} wcProvider = null; }
+    closeModal(document.getElementById('walletModal'));
+  });
+
+  // dispatch by wallet type
+  async function connectWalletByType(type) {
+    if (type === 'metamask') return connectMetaMask();
+    if (type === 'walletconnect') return connectWalletConnect();
+    if (type === 'trust') return connectTrust();
+    if (type === 'coinbase') return connectCoinbase();
+    if (type === 'injected') return connectInjected();
   }
 
   async function refreshContractInfo() {
@@ -524,8 +669,13 @@
   // ===== Event wiring =====
   // (connectBtn click handled by openMenu above)
 
-  document.querySelectorAll('.wallet-btn').forEach(b => {
-    b.addEventListener('click', () => { closeModal($('walletModal')); connect(); });
+  // Wallet modal — каждая кнопка вызывает свой коннектор
+  document.querySelectorAll('.wallet-btn[data-wallet]').forEach(b => {
+    b.addEventListener('click', () => {
+      const type = b.getAttribute('data-wallet');
+      closeModal($('walletModal'));
+      connectWalletByType(type);
+    });
   });
 
   mintBtn.addEventListener('click', (e) => {
@@ -533,7 +683,7 @@
       window.open(cfg.links.opensea, '_blank');
       return;
     }
-    if (!STATE.account) { connect(); return; }
+    if (!STATE.account) { openModal('walletModal'); return; }
     doMint();
   });
 
@@ -583,6 +733,18 @@
   setInterval(refreshContractInfo, 30000);
   updateTotal();
 
+  // UI hint next to MetaMask button
+  const mmTag = document.getElementById('mmTag');
+  if (mmTag) {
+    if (window.ethereum?.isMetaMask) {
+      mmTag.textContent = isMobile ? 'open' : 'detected';
+    } else if (isMobile) {
+      mmTag.textContent = 'tap to open';
+    } else {
+      mmTag.textContent = 'install';
+    }
+  }
+
   // auto-reconnect if previously connected
   (async () => {
     if (typeof window.ethereum === 'undefined' || !window.ethereum.selectedAddress) return;
@@ -591,7 +753,7 @@
     try {
       const accs = await window.ethereum.request({ method: 'eth_accounts' });
       if (accs && accs.length && accs.map(a => a.toLowerCase()).includes(last.toLowerCase())) {
-        await connect();
+        await connectInjected();
       }
     } catch {}
   })();
