@@ -229,14 +229,27 @@
     const n = Math.max(1, Math.min(cap, parseInt(qty.value, 10) || 1));
     qtyLabel.textContent = n;
     syncRangeFill();
-    if (!STATE.account || !STATE.readContract) {
-      totalEth.textContent = '—';
-      return;
-    }
+    if (!STATE.readContract) { totalEth.textContent = '—'; return; }
     try {
-      const [required] = await STATE.readContract.quoteMint(STATE.account, n);
-      STATE.quote = { required: required ?? 0n, n };
-      totalEth.textContent = fmtEth(required) + ' ETH';
+      // Если кошелёк подключён — quoteMint точно знает free/paid разбивку
+      if (STATE.account) {
+        const [required] = await STATE.readContract.quoteMint(STATE.account, n);
+        STATE.quote = { required: required ?? 0n, n };
+        totalEth.textContent = fmtEth(required) + ' ETH';
+      } else {
+        // Без кошелька — аппроксимация по totalMinted, freeThreshold и mintPrice
+        const [minted, freeTh, priceWei] = await Promise.all([
+          STATE.readContract.totalMinted(),
+          STATE.readContract.freeThreshold().catch(() => 0n),
+          STATE.readContract.mintPrice().catch(() => 0n),
+        ]);
+        const remaining = Number(freeTh) - Number(minted);
+        const freeSlots = remaining > 0 ? Math.min(n, remaining) : 0;
+        const paidSlots = n - freeSlots;
+        const required = BigInt(paidSlots) * (priceWei || 0n);
+        STATE.quote = { required, n, freeCount: BigInt(freeSlots), paidCount: BigInt(paidSlots) };
+        totalEth.textContent = freeSlots === n ? 'FREE' : (fmtEth(required) + ' ETH');
+      }
     } catch (e) {
       totalEth.textContent = '—';
     }
@@ -397,6 +410,9 @@
       const up = $('unitPrice');
       if (up) up.textContent = fmtEth(mintPriceWei) + ' ETH';
 
+      const wa = $('walletAllowance');
+      const collRem = ms - m;
+
       if (STATE.account) {
         try {
           STATE.info = await STATE.readContract.mintInfo(STATE.account);
@@ -404,16 +420,33 @@
           const walletLimit = Number(STATE.info.walletLimit);
           const walletRemaining = Number(STATE.info.walletRemaining);
           const freeSupplyRem = Number(STATE.info.freeSupplyRemaining);
-          const collRem = Number(STATE.info.collectionRemaining);
           const cap = Math.max(1, Math.min(25, walletLimit, collRem || walletLimit));
           qty.max = String(cap);
           if (parseInt(qty.value, 10) > cap) qty.value = cap;
-          const wa = $('walletAllowance');
           if (wa) wa.textContent = `${walletMinted} / ${walletLimit} (${walletRemaining} left)`;
           walletNote.textContent =
             `You: ${walletMinted}/${walletLimit} minted • ` +
             `Free supply left: ${freeSupplyRem} • ` +
             `Sale open: ${STATE.info.isSaleOpen ? 'yes' : 'no'}`;
+        } catch (e) { /* ignore */ }
+      } else {
+        // без кошелька — то же что увидит подключённый юзер
+        try {
+          const [walletLimit, freeTh] = await Promise.all([
+            STATE.readContract.maxPerWallet().catch(() => 0n),
+            STATE.readContract.freeThreshold().catch(() => 0n),
+          ]);
+          const wl = Number(walletLimit);
+          const ft = Number(freeTh);
+          const freeLeft = Math.max(0, ft - m);
+          const cap = Math.max(1, Math.min(25, wl, collRem || wl));
+          qty.max = String(cap);
+          if (parseInt(qty.value, 10) > cap) qty.value = cap;
+          if (wa) wa.textContent = `0 / ${wl} (${wl} available)`;
+          walletNote.textContent =
+            `Free supply left: ${freeLeft} / ${ft} • ` +
+            `Mint price: ${fmtEth(mintPriceWei)} ETH • ` +
+            `Per wallet: up to ${wl}`;
         } catch (e) { /* ignore */ }
       }
       updateTotal();
