@@ -58,9 +58,9 @@
       </div>
 
       <div class="hero-col hero-col-right">
-        <p class="hero-status" id="heroStatus" data-bind="mint.minted-label">Loading…</p>
-        <h1 class="hero-title" id="heroTitle">Connecting to the contract…</h1>
-        <p class="hero-sub">Every MY NFT is minted. On-chain collectibles on Ethereum, art and metadata frozen on IPFS. Trade them on the secondary market.</p>
+        <p class="hero-status" id="heroStatus"><span id="mintedStat">0</span> of <span data-bind="mint.totalSupply">10,000</span> minted</p>
+        <h1 class="hero-title" id="heroTitle">Loading…</h1>
+        <p class="hero-sub" data-bind="hero.sub">On-chain collectibles. Trade them on the secondary market after the public mint.</p>
 
         <div class="progress">
           <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>

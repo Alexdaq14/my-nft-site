@@ -113,36 +113,23 @@
     if (label) mintBtn.querySelector('.mint-label').textContent = label;
   };
 
-  // ===== Read via Etherscan (no wallet needed) =====
-  // ABI fragment: [{type:'function', name, inputs, outputs}] -> call data
-  const iface = new ethers.Interface(window.NFT_ABI);
-  function encodeCall(name, args = []) {
-    return iface.encodeFunctionData(name, args);
+  // ===== Read-only contract =====
+  // Провайдер создаётся сразу (для read-only запросов), используя chainId из конфига.
+  // Если MetaMask подключён — STATE.readContract пересоздаётся с ним в connect().
+  function makeReadProvider() {
+    const url = (cfg.rpcUrls && cfg.rpcUrls[0]) || cfg.chain?.rpcUrl;
+    if (!url) return null;
+    return new ethers.JsonRpcProvider(url, cfg.chain?.chainId || undefined);
   }
-  function decodeResult(name, data) {
-    if (!data || data === '0x') return null;
-    const f = iface.getFunction(name);
-    const decoded = iface.decodeFunctionResult(f, data);
-    // return single value unwrapped, or object for multiple
-    if (decoded.length === 1) return decoded[0];
-    const out = {};
-    (f.outputs || []).forEach((o, i) => { out[o.name || ('arg' + i)] = decoded[i]; });
-    return out;
+  function makeReadContract(provider) {
+    return new ethers.Contract(cfg.contract.address, window.NFT_ABI, provider);
   }
-  async function etherscanCall(name, args = []) {
-    const url = `${cfg.chain.etherscanApi}?module=proxy&action=eth_call&to=${cfg.contract.address}&data=${encodeCall(name, args)}&tag=latest`;
-    const r = await fetch(url);
-    const j = await r.json();
-    if (j.status !== '1' || !j.result) throw new Error('etherscan: ' + (j.message || j.result || 'no result'));
-    return decodeResult(name, j.result);
-  }
+  STATE.readContract = makeReadContract(makeReadProvider());
 
-  // Read-only contract that works in BOTH connected and disconnected modes
+  // View helper — всегда через STATE.readContract (читает даже без кошелька)
   async function readView(name, args = []) {
-    if (STATE.readContract) {
-      try { return await STATE.readContract[name](...args); } catch (e) { /* fall through to etherscan */ }
-    }
-    return await etherscanCall(name, args);
+    if (!STATE.readContract) return null;
+    return await STATE.readContract[name](...args);
   }
 
   // ===== Countdown + status =====
@@ -408,65 +395,68 @@
 
       await refreshContractInfo();
     } catch (e) {
-      walletNote.textContent = explainError(e);
+      console.warn('connect', e);
     }
   }
 
   async function refreshContractInfo() {
     try {
-      const [
-        totalMinted, maxSupply, saleOpen,
-        startTime, endTime, mintPriceWei,
-      ] = await Promise.all([
-        readView('totalMinted'),
-        readView('maxSupply'),
-        readView('saleOpen'),
-        readView('startTime'),
-        readView('endTime'),
-        readView('mintPrice'),
-      ]).catch((e) => { throw e; });
-      const m = Number(totalMinted);
-      const ms = Number(maxSupply);
-      const startMs = Number(startTime) * 1000;
-      const endMs = Number(endTime) * 1000;
+      const [totalMinted, maxSupply, saleOpen, startTime, endTime, mintPriceWei] = await Promise.all([
+        readView('totalMinted').catch(() => null),
+        readView('maxSupply').catch(() => null),
+        readView('saleOpen').catch(() => null),
+        readView('startTime').catch(() => null),
+        readView('endTime').catch(() => null),
+        readView('mintPrice').catch(() => null),
+      ]);
 
+      const m = totalMinted != null ? Number(totalMinted) : 0;
+      const ms = maxSupply != null ? Number(maxSupply) : (cfg.mint?.totalSupply || 10000);
+      const startMs = startTime != null ? Number(startTime) * 1000 : 0;
+      const endMs = endTime != null ? Number(endTime) * 1000 : 0;
+
+      // Стартовое значение счётчика сразу из конфига, потом анимируется к реальному
+      const ms2 = $('mintedStat');
+      if (ms2) ms2.textContent = m.toLocaleString();
       progressTarget = m;
-      progressShown = 0;
+      progressShown = cfg.mint?.minted || ms;
       animateProgress();
       if (progressFill) progressFill.style.width = `${ms > 0 ? (m / ms) * 100 : 0}%`;
 
-      renderStatus({ minted: m, maxSupply: ms, saleOpen, startMs, endMs, isLiveWindow: true });
+      renderStatus({ minted: m, maxSupply: ms, saleOpen: !!saleOpen, startMs, endMs, isLiveWindow: true });
 
       const up = $('unitPrice');
-      if (up) up.textContent = fmtEth(mintPriceWei) + ' ETH';
+      if (up) up.textContent = mintPriceWei != null ? fmtEth(mintPriceWei) + ' ETH' : '—';
 
       const wa = $('walletAllowance');
-      const collRem = ms - m;
+      const collRem = Math.max(0, ms - m);
 
       if (STATE.account) {
         try {
           STATE.info = await readView('mintInfo', [STATE.account]);
-          const walletMinted = Number(STATE.info.walletMinted);
-          const walletLimit = Number(STATE.info.walletLimit);
-          const walletRemaining = Number(STATE.info.walletRemaining);
-          const freeSupplyRem = Number(STATE.info.freeSupplyRemaining);
-          const cap = Math.max(1, Math.min(25, walletLimit, collRem || walletLimit));
-          qty.max = String(cap);
-          if (parseInt(qty.value, 10) > cap) qty.value = cap;
-          if (wa) wa.textContent = `${walletMinted} / ${walletLimit} (${walletRemaining} left)`;
-          walletNote.textContent =
-            `You: ${walletMinted}/${walletLimit} minted • ` +
-            `Free supply left: ${freeSupplyRem} • ` +
-            `Sale open: ${STATE.info.isSaleOpen ? 'yes' : 'no'}`;
-        } catch (e) { /* ignore */ }
+          if (STATE.info) {
+            const walletMinted = Number(STATE.info.walletMinted);
+            const walletLimit = Number(STATE.info.walletLimit);
+            const walletRemaining = Number(STATE.info.walletRemaining);
+            const freeSupplyRem = Number(STATE.info.freeSupplyRemaining);
+            const cap = Math.max(1, Math.min(25, walletLimit, collRem || walletLimit));
+            qty.max = String(cap);
+            if (parseInt(qty.value, 10) > cap) qty.value = cap;
+            if (wa) wa.textContent = `${walletMinted} / ${walletLimit} (${walletRemaining} left)`;
+            walletNote.textContent =
+              `You: ${walletMinted}/${walletLimit} minted • ` +
+              `Free supply left: ${freeSupplyRem} • ` +
+              `Sale open: ${STATE.info.isSaleOpen ? 'yes' : 'no'}`;
+          }
+        } catch (e) { console.warn(e); }
       } else {
         try {
           const [walletLimit, freeTh] = await Promise.all([
             readView('maxPerWallet'),
             readView('freeThreshold'),
           ]);
-          const wl = Number(walletLimit);
-          const ft = Number(freeTh);
+          const wl = Number(walletLimit || cfg.mint?.maxPerWallet || 10);
+          const ft = Number(freeTh || 0);
           const freeLeft = Math.max(0, ft - m);
           const cap = Math.max(1, Math.min(25, wl, collRem || wl));
           qty.max = String(cap);
@@ -474,13 +464,13 @@
           if (wa) wa.textContent = `0 / ${wl} (${wl} available)`;
           walletNote.textContent =
             `Free supply left: ${freeLeft} / ${ft} • ` +
-            `Mint price: ${fmtEth(mintPriceWei)} ETH • ` +
+            `Mint price: ${up?.textContent || '—'} • ` +
             `Per wallet: up to ${wl}`;
-        } catch (e) { /* ignore */ }
+        } catch (e) { console.warn(e); }
       }
       updateTotal();
     } catch (e) {
-      walletNote.textContent = explainError(e);
+      console.warn('refreshContractInfo', e);
     }
   }
 

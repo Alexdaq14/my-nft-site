@@ -21,16 +21,21 @@ window.SITE_CONFIG = {
     explorer: "sepolia.etherscan.io",
     explorerUrl: "https://sepolia.etherscan.io",
     rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
-    etherscanApi: "https://api-sepolia.etherscan.io/api",
   },
   mint: {
     soldOut: false,
     totalSupply: 10000,
-    minted: 0,
+    minted: 10000,
     priceEth: 0,
     maxPerWallet: 10,
     secondaryUrl: "https://opensea.io/",
   },
+  // Несколько RPC на случай если один не отвечает
+  rpcUrls: [
+    "https://ethereum-sepolia-rpc.publicnode.com",
+    "https://1rpc.io/sepolia",
+    "https://rpc.sepolia.org",
+  ],
   gallery: [
     "img/preview.svg",
   ],
