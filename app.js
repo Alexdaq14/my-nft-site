@@ -113,6 +113,38 @@
     if (label) mintBtn.querySelector('.mint-label').textContent = label;
   };
 
+  // ===== Read via Etherscan (no wallet needed) =====
+  // ABI fragment: [{type:'function', name, inputs, outputs}] -> call data
+  const iface = new ethers.Interface(window.NFT_ABI);
+  function encodeCall(name, args = []) {
+    return iface.encodeFunctionData(name, args);
+  }
+  function decodeResult(name, data) {
+    if (!data || data === '0x') return null;
+    const f = iface.getFunction(name);
+    const decoded = iface.decodeFunctionResult(f, data);
+    // return single value unwrapped, or object for multiple
+    if (decoded.length === 1) return decoded[0];
+    const out = {};
+    (f.outputs || []).forEach((o, i) => { out[o.name || ('arg' + i)] = decoded[i]; });
+    return out;
+  }
+  async function etherscanCall(name, args = []) {
+    const url = `${cfg.chain.etherscanApi}?module=proxy&action=eth_call&to=${cfg.contract.address}&data=${encodeCall(name, args)}&tag=latest`;
+    const r = await fetch(url);
+    const j = await r.json();
+    if (j.status !== '1' || !j.result) throw new Error('etherscan: ' + (j.message || j.result || 'no result'));
+    return decodeResult(name, j.result);
+  }
+
+  // Read-only contract that works in BOTH connected and disconnected modes
+  async function readView(name, args = []) {
+    if (STATE.readContract) {
+      try { return await STATE.readContract[name](...args); } catch (e) { /* fall through to etherscan */ }
+    }
+    return await etherscanCall(name, args);
+  }
+
   // ===== Countdown + status =====
   let countdownTimer = null;
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -234,17 +266,15 @@
     syncRangeFill();
     if (!STATE.readContract) { totalEth.textContent = '—'; return; }
     try {
-      // Если кошелёк подключён — quoteMint точно знает free/paid разбивку
       if (STATE.account) {
-        const [required] = await STATE.readContract.quoteMint(STATE.account, n);
+        const [required] = await readView('quoteMint', [STATE.account, n]);
         STATE.quote = { required: required ?? 0n, n };
         totalEth.textContent = fmtEth(required) + ' ETH';
       } else {
-        // Без кошелька — аппроксимация по totalMinted, freeThreshold и mintPrice
         const [minted, freeTh, priceWei] = await Promise.all([
-          STATE.readContract.totalMinted(),
-          STATE.readContract.freeThreshold().catch(() => 0n),
-          STATE.readContract.mintPrice().catch(() => 0n),
+          readView('totalMinted'),
+          readView('freeThreshold'),
+          readView('mintPrice'),
         ]);
         const remaining = Number(freeTh) - Number(minted);
         const freeSlots = remaining > 0 ? Math.min(n, remaining) : 0;
@@ -383,21 +413,18 @@
   }
 
   async function refreshContractInfo() {
-    if (!STATE.readContract) return;
     try {
       const [
-        name, symbol, totalMinted, maxSupply, saleOpen,
+        totalMinted, maxSupply, saleOpen,
         startTime, endTime, mintPriceWei,
       ] = await Promise.all([
-        STATE.readContract.name().catch(() => null),
-        STATE.readContract.symbol().catch(() => null),
-        STATE.readContract.totalMinted().catch(() => 0n),
-        STATE.readContract.maxSupply().catch(() => 0n),
-        STATE.readContract.saleOpen().catch(() => false),
-        STATE.readContract.startTime().catch(() => 0n),
-        STATE.readContract.endTime().catch(() => 0n),
-        STATE.readContract.mintPrice().catch(() => 0n),
-      ]);
+        readView('totalMinted'),
+        readView('maxSupply'),
+        readView('saleOpen'),
+        readView('startTime'),
+        readView('endTime'),
+        readView('mintPrice'),
+      ]).catch((e) => { throw e; });
       const m = Number(totalMinted);
       const ms = Number(maxSupply);
       const startMs = Number(startTime) * 1000;
@@ -418,7 +445,7 @@
 
       if (STATE.account) {
         try {
-          STATE.info = await STATE.readContract.mintInfo(STATE.account);
+          STATE.info = await readView('mintInfo', [STATE.account]);
           const walletMinted = Number(STATE.info.walletMinted);
           const walletLimit = Number(STATE.info.walletLimit);
           const walletRemaining = Number(STATE.info.walletRemaining);
@@ -433,11 +460,10 @@
             `Sale open: ${STATE.info.isSaleOpen ? 'yes' : 'no'}`;
         } catch (e) { /* ignore */ }
       } else {
-        // без кошелька — то же что увидит подключённый юзер
         try {
           const [walletLimit, freeTh] = await Promise.all([
-            STATE.readContract.maxPerWallet().catch(() => 0n),
-            STATE.readContract.freeThreshold().catch(() => 0n),
+            readView('maxPerWallet'),
+            readView('freeThreshold'),
           ]);
           const wl = Number(walletLimit);
           const ft = Number(freeTh);
@@ -555,15 +581,9 @@
     walletNote.textContent = '';
   });
 
-  // initial state — read-only contract works without a wallet
-  if (cfg.contract?.address) {
-    try {
-      const provider = new ethers.JsonRpcProvider(cfg.chain.rpcUrl);
-      STATE.readContract = new ethers.Contract(cfg.contract.address, window.NFT_ABI, provider);
-      refreshContractInfo();
-      setInterval(refreshContractInfo, 30000);
-    } catch (e) { /* ignore */ }
-  }
+  // initial state — read via Etherscan (no wallet needed)
+  refreshContractInfo();
+  setInterval(refreshContractInfo, 30000);
   updateTotal();
 
   // auto-reconnect if previously connected

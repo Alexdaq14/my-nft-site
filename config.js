@@ -20,7 +20,8 @@ window.SITE_CONFIG = {
     hexChainId: "0xaa36a7",
     explorer: "sepolia.etherscan.io",
     explorerUrl: "https://sepolia.etherscan.io",
-    rpcUrl: "https://rpc.sepolia.org",
+    rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
+    etherscanApi: "https://api-sepolia.etherscan.io/api",
   },
   mint: {
     soldOut: false,
