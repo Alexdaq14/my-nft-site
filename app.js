@@ -178,7 +178,6 @@
     if (inWindow && endMs > 0) {
       const left = endMs - now;
       if (left < 24 * 3600 * 1000) {
-        // override title only when close to ending
         const hh = Math.floor(left / 3600000);
         const mm = Math.floor((left % 3600000) / 60000);
         const ss = Math.floor((left % 60000) / 1000);
@@ -191,10 +190,14 @@
     } else {
       stopCountdown();
     }
-    // Кнопка: доступна только если ещё и saleOpen === true
+    // Кнопка: активна если есть аккаунт и saleOpen; иначе — яркая "Connect to mint"
     if (!STATE.busy) {
-      if (saleOpen) {
+      if (STATE.account && saleOpen) {
         mintBtn.querySelector('.mint-label').textContent = 'MINT';
+        mintBtn.classList.remove('is-disabled');
+        mintBtn.disabled = false;
+      } else if (!STATE.account) {
+        mintBtn.querySelector('.mint-label').textContent = 'CONNECT WALLET TO MINT';
         mintBtn.classList.remove('is-disabled');
         mintBtn.disabled = false;
       } else {
@@ -507,6 +510,7 @@
       window.open(cfg.links.opensea, '_blank');
       return;
     }
+    if (!STATE.account) { connect(); return; }
     doMint();
   });
 
