@@ -96,6 +96,8 @@
 
   const openMenu = (e) => { if (e) e.stopPropagation(); if (!STATE.account) return; connectMenu.classList.toggle('open'); };
   const closeMenu = () => { if (connectMenu) connectMenu.classList.remove('open'); };
+  const openModal = (id) => { const m = $(id); if (m) { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); } };
+  const closeModal = (m) => { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); };
   document.addEventListener('click', (e) => {
     if (!connectMenu || !connectBtn || !walletChip) return;
     if (!connectMenu.contains(e.target) && e.target !== connectBtn && !connectBtn.contains(e.target) && !walletChip.contains(e.target)) closeMenu();
@@ -319,7 +321,6 @@
     slide.appendChild(media);
     track.appendChild(slide);
   });
-  totEl.textContent = images.length;
   const goTo = (i) => {
     idx = (i + images.length) % images.length;
     track.style.transform = `translateX(-${idx * 100}%)`;
@@ -328,8 +329,6 @@
   // no autoplay — GIF animates itself
 
   // ===== Modals =====
-  const openModal = (id) => { const m = $(id); if (m) { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); } };
-  const closeModal = (m) => { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); };
   document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', (e) => { if (e.target.matches('[data-close]')) closeModal(m); });
   });
