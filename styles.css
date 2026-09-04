@@ -152,8 +152,11 @@ a:hover { text-decoration: underline; }
 .btn:hover { background: #fff; color: #000; text-decoration: none; }
 .btn-primary { background: #fff; color: #000; border-color: #fff; }
 .btn-primary:hover { background: #e6e6e6; }
-.btn-ghost { background: transparent; }
+.btn-ghost { background: rgba(0,0,0,0.65); border-color: rgba(255,255,255,0.25); }
+.btn-ghost:hover { background: rgba(0,0,0,0.85); color: #fff; text-decoration: none; }
 .btn-block { width: 100%; padding: 14px 18px; }
+.btn-icon { padding: 10px 12px; }
+.btn-x-icon { display: block; }
 
 .btn-buy-inline {
   background: rgba(0,0,0,0.85);
