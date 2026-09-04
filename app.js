@@ -282,10 +282,6 @@
   // Carousel (GIF — no autoplay needed)
    const carousel = $('carousel');
   const track = $('carouselTrack');
-  const idxEl = $('carouselIndex');
-  const totEl = $('carouselTotal');
-  const prevBtn = $('carouselPrev');
-  const nextBtn = $('carouselNext');
   const images = Array.isArray(cfg.gallery) && cfg.gallery.length ? cfg.gallery : ['img/preview.svg'];
   let idx = 0;
 
@@ -327,10 +323,7 @@
   const goTo = (i) => {
     idx = (i + images.length) % images.length;
     track.style.transform = `translateX(-${idx * 100}%)`;
-    if (idxEl) idxEl.textContent = idx + 1;
   };
-  if (prevBtn) prevBtn.addEventListener('click', () => goTo(idx - 1));
-  if (nextBtn) nextBtn.addEventListener('click', () => goTo(idx + 1));
 
   // no autoplay — GIF animates itself
 
