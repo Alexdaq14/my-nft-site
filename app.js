@@ -101,7 +101,6 @@
     if (!connectMenu.contains(e.target) && e.target !== connectBtn && !connectBtn.contains(e.target) && !walletChip.contains(e.target)) closeMenu();
   });
   connectBtn.addEventListener('click', (e) => {
-    alert('connectBtn clicked, account=' + !!STATE.account);
     e.stopPropagation();
     if (!STATE.account) openModal('walletModal');
     else openMenu(e);
@@ -443,8 +442,6 @@
     if (window.ethereum?.isMetaMask) provider = window.ethereum;
     else provider = await getEIP6963Provider();
     if (!provider) {
-      // mobile / no installed — deep link to MetaMask app which opens this URL in its dApp browser
-      const url = encodeURIComponent(window.location.href);
       if (isMobile) {
         window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
         return;
@@ -707,7 +704,6 @@
 
   if (mintBtn) {
     mintBtn.addEventListener('click', (e) => {
-      alert('mintBtn clicked, account=' + !!STATE.account);
       if (e.target.closest('.btn-buy-inline')) {
         window.open(cfg.links.opensea, '_blank');
         return;
@@ -758,33 +754,8 @@
     walletNote.textContent = '';
   });
 
-  // initial state — read via Etherscan (no wallet needed)
+  // initial state — read via RPC (no wallet needed)
   refreshContractInfo();
   setInterval(refreshContractInfo, 30000);
   updateTotal();
-
-  // UI hint next to MetaMask button
-  const mmTag = document.getElementById('mmTag');
-  if (mmTag) {
-    if (window.ethereum?.isMetaMask) {
-      mmTag.textContent = isMobile ? 'open' : 'detected';
-    } else if (isMobile) {
-      mmTag.textContent = 'tap to open';
-    } else {
-      mmTag.textContent = 'install';
-    }
-  }
-
-  // auto-reconnect if previously connected
-  (async () => {
-    if (typeof window.ethereum === 'undefined' || !window.ethereum.selectedAddress) return;
-    const last = loadAccount();
-    if (!last) return;
-    try {
-      const accs = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accs && accs.length && accs.map(a => a.toLowerCase()).includes(last.toLowerCase())) {
-        await connectInjected();
-      }
-    } catch {}
-  })();
 })();
