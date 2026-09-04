@@ -278,14 +278,13 @@
   qty.addEventListener('input', () => { updateTotal(); });
   syncRangeFill();
 
-  // ===== Carousel (autoplay only) =====
+  // ===== Carousel (GIF — no autoplay needed) =====
   const carousel = $('carousel');
   const track = $('carouselTrack');
   const idxEl = $('carouselIndex');
   const totEl = $('carouselTotal');
   const images = Array.isArray(cfg.gallery) && cfg.gallery.length ? cfg.gallery : ['img/preview.svg'];
   let idx = 0;
-  let autoTimer = null;
 
   images.forEach((src, i) => {
     const slide = document.createElement('div');
@@ -303,13 +302,8 @@
     track.style.transform = `translateX(-${idx * 100}%)`;
     idxEl.textContent = idx + 1;
   };
-  const startAuto = () => {
-    const ms = parseInt(carousel.dataset.autoplay || '3500', 10);
-    if (images.length > 1) autoTimer = setInterval(() => goTo(idx + 1), ms);
-  };
-  const stopAuto = () => clearInterval(autoTimer);
-  document.addEventListener('visibilitychange', () => document.hidden ? stopAuto() : startAuto());
-  startAuto();
+
+  // no autoplay — GIF animates itself
 
   // ===== Modals =====
   const openModal = (id) => { const m = $(id); if (m) { m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); } };
