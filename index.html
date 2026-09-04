@@ -56,6 +56,7 @@
         <div class="cm-actions">
           <button class="cm-btn" id="cmCopy">Copy address</button>
           <button class="cm-btn" id="cmView">View on Etherscan</button>
+          <a data-bind-href="links.x" href="#" target="_blank" rel="noopener" class="cm-btn">Twitter / X</a>
           <button class="cm-btn" id="cmSwitch">Switch account</button>
           <button class="cm-btn cm-btn-danger" id="cmDisconnect">Disconnect</button>
         </div>
@@ -68,7 +69,6 @@
       <div class="hero-col hero-col-left">
         <div class="carousel" id="carousel">
           <div class="carousel-track" id="carouselTrack"></div>
-          <div class="carousel-counter"><span id="carouselIndex">1</span> / <span id="carouselTotal">1</span></div>
         </div>
       </div>
 
@@ -133,14 +133,14 @@
   <footer class="site-footer">
     <p>contract: <a data-bind-href="contract.explorerUrl" href="#" target="_blank" rel="noopener"><span data-bind="contract.shortAddress">0x0000…0000</span></a></p>
     <p class="muted small">
-      <a data-bind-href="links.x" href="#" target="_blank" rel="noopener"><span data-bind="links.x.handle">x.com</span></a>
+      <a data-bind-href="links.x" href="#" target="_blank" rel="noopener"><span data-bind="brand.twitter">@ArtificialInuNFT</span></a>
       ·
       <a data-bind-href="links.opensea" href="#" target="_blank" rel="noopener">OpenSea collection</a>
     </p>
     <p class="muted small">
-      <span data-bind="chain.name">Ethereum</span> <span data-bind="chain.chainId">1</span>
+      <span data-bind="chain.name">Sepolia</span> <span data-bind="chain.chainId">11155111</span>
       ·
-      <a data-bind-href="chain.explorerUrl" href="#" target="_blank" rel="noopener"><span data-bind="chain.explorer">etherscan.io</span></a>
+      <a data-bind-href="chain.explorerUrl" href="#" target="_blank" rel="noopener"><span data-bind="chain.explorer">sepolia.etherscan.io</span></a>
     </p>
   </footer>
 

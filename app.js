@@ -278,13 +278,26 @@
   qty.addEventListener('input', () => { updateTotal(); });
   syncRangeFill();
 
-  // ===== Carousel (GIF — no autoplay needed) =====
+  // Carousel (GIF — no autoplay needed)
   const carousel = $('carousel');
   const track = $('carouselTrack');
   const idxEl = $('carouselIndex');
   const totEl = $('carouselTotal');
   const images = Array.isArray(cfg.gallery) && cfg.gallery.length ? cfg.gallery : ['img/preview.svg'];
   let idx = 0;
+
+  // Sync carousel height to right column height
+  const syncCarouselHeight = () => {
+    const right = document.querySelector('.hero-col-right');
+    if (!right || !carousel) return;
+    const h = right.getBoundingClientRect().height;
+    if (h > 0) carousel.style.height = h + 'px';
+  };
+  const ro = new ResizeObserver(() => syncCarouselHeight());
+  ro.observe(document.querySelector('.hero-col-right') || document.body);
+  window.addEventListener('load', syncCarouselHeight);
+  window.addEventListener('resize', syncCarouselHeight);
+  setTimeout(syncCarouselHeight, 100);
 
   images.forEach((src, i) => {
     const slide = document.createElement('div');

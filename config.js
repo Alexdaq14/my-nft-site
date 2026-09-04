@@ -9,7 +9,7 @@ window.SITE_CONFIG = {
   domain: "artificialinu.store",
   links: {
     opensea: "https://opensea.io/",
-    x: "https://x.com/",
+    x: "https://x.com/ArtificiaInuNFT",
     explorer: "https://sepolia.etherscan.io/",
   },
   contract: {
