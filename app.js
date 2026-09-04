@@ -718,7 +718,7 @@
         walletNote.textContent = '';
         return;
       }
-      await connect();
+      await connectInjected();
     });
     window.ethereum.on?.('chainChanged', () => { location.reload(); });
   }
