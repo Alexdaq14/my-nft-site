@@ -293,6 +293,7 @@
     img.src = src; img.alt = `${cfg.brand?.name || 'NFT'} preview ${i + 1}`;
     img.loading = i === 0 ? 'eager' : 'lazy';
     img.draggable = false;
+    img.decoding = 'async';
     slide.appendChild(img);
     track.appendChild(slide);
   });
