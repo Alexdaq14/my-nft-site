@@ -23,7 +23,7 @@ html, body {
   min-height: 100vh;
 }
 body {
-  background: url('img/collage.jpg') center/cover no-repeat fixed;
+  background: url('img/collage.webp') center/cover no-repeat fixed;
 }
 body::before {
   content: '';

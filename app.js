@@ -289,12 +289,22 @@
   images.forEach((src, i) => {
     const slide = document.createElement('div');
     slide.className = 'carousel-slide';
-    const img = document.createElement('img');
-    img.src = src; img.alt = `${cfg.brand?.name || 'NFT'} preview ${i + 1}`;
-    img.loading = i === 0 ? 'eager' : 'lazy';
-    img.draggable = false;
-    img.decoding = 'async';
-    slide.appendChild(img);
+    const isVideo = /\.mp4(\?.*)?$/i.test(src);
+    const media = document.createElement(isVideo ? 'video' : 'img');
+    media.src = src;
+    media.alt = `${cfg.brand?.name || 'NFT'} preview ${i + 1}`;
+    media.loading = i === 0 ? 'eager' : 'lazy';
+    media.draggable = false;
+    media.decoding = 'async';
+    if (isVideo) {
+      media.muted = true;
+      media.loop = true;
+      media.playsInline = true;
+      media.autoplay = true;
+      media.setAttribute('playsinline', '');
+      media.setAttribute('webkit-playsinline', '');
+    }
+    slide.appendChild(media);
     track.appendChild(slide);
   });
   totEl.textContent = images.length;

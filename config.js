@@ -39,6 +39,6 @@ window.SITE_CONFIG = {
     "https://rpc.sepolia.org",
   ],
   gallery: [
-    "img/Comp.gif",
+    "img/Comp.mp4",
   ],
 };
