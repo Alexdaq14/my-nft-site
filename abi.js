@@ -27,17 +27,6 @@ window.NFT_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "initialTreasury",
-				"type": "address"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "uint256",
 				"name": "numerator",
 				"type": "uint256"

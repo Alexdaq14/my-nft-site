@@ -95,11 +95,13 @@
   };
 
   const openMenu = (e) => { if (e) e.stopPropagation(); if (!STATE.account) return; connectMenu.classList.toggle('open'); };
-  const closeMenu = () => connectMenu.classList.remove('open');
+  const closeMenu = () => { if (connectMenu) connectMenu.classList.remove('open'); };
   document.addEventListener('click', (e) => {
+    if (!connectMenu || !connectBtn || !walletChip) return;
     if (!connectMenu.contains(e.target) && e.target !== connectBtn && !connectBtn.contains(e.target) && !walletChip.contains(e.target)) closeMenu();
   });
   connectBtn.addEventListener('click', (e) => {
+    alert('connectBtn clicked, account=' + !!STATE.account);
     e.stopPropagation();
     if (!STATE.account) openModal('walletModal');
     else openMenu(e);
@@ -275,14 +277,16 @@
       totalEth.textContent = '—';
     }
   };
-  qty.addEventListener('input', () => { updateTotal(); });
+  qty.addEventListener('input', () => { if (qty) updateTotal(); });
   syncRangeFill();
 
   // Carousel (GIF — no autoplay needed)
-  const carousel = $('carousel');
+   const carousel = $('carousel');
   const track = $('carouselTrack');
   const idxEl = $('carouselIndex');
   const totEl = $('carouselTotal');
+  const prevBtn = $('carouselPrev');
+  const nextBtn = $('carouselNext');
   const images = Array.isArray(cfg.gallery) && cfg.gallery.length ? cfg.gallery : ['img/preview.svg'];
   let idx = 0;
 
@@ -324,8 +328,10 @@
   const goTo = (i) => {
     idx = (i + images.length) % images.length;
     track.style.transform = `translateX(-${idx * 100}%)`;
-    idxEl.textContent = idx + 1;
+    if (idxEl) idxEl.textContent = idx + 1;
   };
+  if (prevBtn) prevBtn.addEventListener('click', () => goTo(idx - 1));
+  if (nextBtn) nextBtn.addEventListener('click', () => goTo(idx + 1));
 
   // no autoplay — GIF animates itself
 
@@ -365,6 +371,9 @@
   const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
   const MM_DEEPLINK = (u) => `https://metamask.app.link/dapp/${u.replace(/^https?:\/\//, '')}`;
   const MM_SCHEME = (u) => `metamask://dapp/${u.replace(/^https?:\/\//, '')}`;
+
+  // alias for cmSwitch
+  const connect = connectInjected;
 
   async function getEIP6963Provider() {
     return new Promise((resolve) => {
@@ -696,16 +705,20 @@
     });
   });
 
-  mintBtn.addEventListener('click', (e) => {
-    if (e.target.closest('.btn-buy-inline')) {
-      window.open(cfg.links.opensea, '_blank');
-      return;
-    }
-    if (!STATE.account) { openModal('walletModal'); return; }
-    doMint();
-  });
+  if (mintBtn) {
+    mintBtn.addEventListener('click', (e) => {
+      alert('mintBtn clicked, account=' + !!STATE.account);
+      if (e.target.closest('.btn-buy-inline')) {
+        window.open(cfg.links.opensea, '_blank');
+        return;
+      }
+      if (!STATE.account) { openModal('walletModal'); return; }
+      doMint();
+    });
+  }
 
-  $('confirmBtn').addEventListener('click', confirmMint);
+  const confirmBtn = $('confirmBtn');
+  if (confirmBtn) confirmBtn.addEventListener('click', confirmMint);
 
   // account / chain change
   if (window.ethereum) {
@@ -724,21 +737,20 @@
   }
 
   // dropdown actions
-  cmCopy.addEventListener('click', async () => {
+  if (cmCopy) cmCopy.addEventListener('click', async () => {
     if (!STATE.account) return;
     try { await navigator.clipboard.writeText(STATE.account); cmCopy.textContent = 'Copied ✓'; setTimeout(() => { cmCopy.textContent = 'Copy address'; }, 1500); } catch {}
   });
-  cmView.addEventListener('click', () => {
+  if (cmView) cmView.addEventListener('click', () => {
     if (!STATE.account) return;
     window.open(`${cfg.chain.explorerUrl}/address/${STATE.account}`, '_blank');
   });
-  cmSwitch.addEventListener('click', async () => {
+  if (cmSwitch) cmSwitch.addEventListener('click', async () => {
     closeMenu();
-    // request permissions again — forces MetaMask to show account picker
     try { await window.ethereum.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] }); } catch {}
     try { await connect(); } catch {}
   });
-  cmDisconnect.addEventListener('click', () => {
+  if (cmDisconnect) cmDisconnect.addEventListener('click', () => {
     STATE.account = null; STATE.signer = null; STATE.contract = null; STATE.provider = null;
     saveAccount(null);
     setConnectLabel('Connect wallet', '');

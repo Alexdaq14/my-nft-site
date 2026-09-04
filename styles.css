@@ -232,9 +232,55 @@ a:hover { text-decoration: underline; }
   font-size: 11px;
   letter-spacing: 1px;
   padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.25);
-  pointer-events: none;
+  border-radius: 4px;
+}
+.carousel-index {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.carousel-total {
+  position: absolute;
+  top: 12px;
+  right: 48px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s;
+}
+.carousel-arrow:hover {
+  background: rgba(0,0,0,0.8);
+}
+.carousel-prev {
+  left: 12px;
+}
+.carousel-next {
+  right: 12px;
 }
 
 /* Right column */
