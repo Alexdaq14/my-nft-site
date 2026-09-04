@@ -396,7 +396,7 @@
             chainName: cfg.chain.name,
             rpcUrls: [cfg.chain.rpcUrl],
             blockExplorerUrls: [cfg.chain.explorerUrl],
-            nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+            nativeCurrency: { name: 'Robinhood Ether', symbol: 'ETH', decimals: 18 },
           }],
         });
       } else {
