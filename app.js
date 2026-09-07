@@ -721,7 +721,7 @@
       }
       await connectInjected();
     });
-    window.ethereum.on?.('chainChanged', () => { location.reload(); });
+    window.ethereum.on?.('chainChanged', () => {});
   }
 
   // dropdown actions
