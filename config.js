@@ -8,7 +8,7 @@ window.SITE_CONFIG = {
   },
   domain: "artificialinu.store",
   links: {
-    opensea: "https://opensea.io/",
+    opensea: "https://opensea.io/collection/artificiallinunft",
     x: "https://x.com/ArtificiaInuNFT",
     explorer: "https://robinhoodchain.blockscout.com/",
   },
@@ -32,7 +32,7 @@ window.SITE_CONFIG = {
     minted: 10000,
     priceEth: 0,
     maxPerWallet: 10,
-    secondaryUrl: "https://opensea.io/",
+    secondaryUrl: "https://opensea.io/collection/artificiallinunft",
   },
   rpcUrls: [
     "https://rpc.mainnet.chain.robinhood.com",
