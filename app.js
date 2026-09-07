@@ -434,7 +434,6 @@
         window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
         return;
       }
-      alert('MetaMask not detected. Install it from metamask.io or use WalletConnect.');
       window.open('https://metamask.io/download/', '_blank');
       return;
     }
@@ -442,7 +441,7 @@
   }
 
   async function connectInjected() {
-    if (!window.ethereum) { alert('No browser wallet detected.'); return; }
+    if (!window.ethereum) { return; }
     await finalizeConnection(window.ethereum, 'injected');
   }
 
@@ -465,7 +464,6 @@
   let wcProvider = null;
   async function connectWalletConnect(opts = {}) {
     if (!window.WalletConnectEthereumProvider) {
-      alert('WalletConnect not loaded. Check your connection.');
       return;
     }
     const wcOpts = {
