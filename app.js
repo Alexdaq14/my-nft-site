@@ -195,22 +195,18 @@
       mintBtn.disabled = true;
       return;
     }
-    // In window — show MINT IS LIVE regardless of saleOpen
-    heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted — MINT IS LIVE`;
-    heroTitle.textContent = 'Mint is live';
+    // In window — show remaining time instead of MINT IS LIVE
+    heroStatus.textContent = `${minted.toLocaleString()} of ${maxSupply.toLocaleString()} minted`;
     if (inWindow && endMs > 0) {
       const left = endMs - now;
-      if (left < 24 * 3600 * 1000) {
-        const hh = Math.floor(left / 3600000);
-        const mm = Math.floor((left % 3600000) / 60000);
-        const ss = Math.floor((left % 60000) / 1000);
-        const cd = `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-        heroTitle.textContent = `Ends in ${cd}`;
-        startCountdown(endMs, heroTitle, 'Ends in');
-      } else {
-        stopCountdown();
-      }
+      const hh = Math.floor(left / 3600000);
+      const mm = Math.floor((left % 3600000) / 60000);
+      const ss = Math.floor((left % 60000) / 1000);
+      const cd = `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+      heroTitle.textContent = `Ends in ${cd}`;
+      startCountdown(endMs, heroTitle, 'Ends in');
     } else {
+      heroTitle.textContent = 'Mint is live';
       stopCountdown();
     }
     // Кнопка: активна если есть аккаунт и saleOpen; иначе — яркая "Connect to mint"
